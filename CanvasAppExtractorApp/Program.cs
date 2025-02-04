@@ -1,7 +1,7 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
+using System.Text.Json;
 
 namespace CanvasAppExtractorApp
 {
@@ -21,10 +21,38 @@ namespace CanvasAppExtractorApp
             ApplicationConfiguration.Initialize();
 
             var serviceCollection = new ServiceCollection();
-            ConfigureServices(serviceCollection);
+            var success = false;
+            try
+            {
+                ConfigureServices(serviceCollection);
+                success = true;
+            }
+            catch(InvalidDataException ex)
+            {
+                if(ex.InnerException?.InnerException is JsonException jsException)
+                {
+                    ShowError(ex.Message + " " + jsException.Message);
+                }
+                else
+                {
+                    ShowError(ex.ToString());
+                }
+            }
+            catch(Exception ex)
+            {
+                ShowError(ex.ToString());
+            }
 
-            ServiceProvider = serviceCollection.BuildServiceProvider();
-            Application.Run(ServiceProvider.GetRequiredService<Form1>());
+            if (success)
+            {
+                ServiceProvider = serviceCollection.BuildServiceProvider();
+                Application.Run(ServiceProvider.GetRequiredService<Form1>());
+            }
+        }
+
+        private static void ShowError(string message)
+        {
+            MessageBox.Show(message, @"Error!", MessageBoxButtons.OK, MessageBoxIcon.Error);
         }
 
         private static void ConfigureServices(ServiceCollection serviceCollection)
